@@ -8,17 +8,13 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 
 // === Icon Halte & Pengguna ===
 const halteIcon = L.icon({
-    iconUrl: "/images/halte.png",
+    iconUrl: "/images/halte.svg",
     iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
 });
 
 const userIcon = L.icon({
-    iconUrl: "/images/bus.png",
+    iconUrl: "/images/bus.svg",
     iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -30],
 });
 
 // === Rute ===
