@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-// Konfigurasi EJS dan folder public
+// EJS dan folder static
 app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
     res.render("index");
 });
 
-// Event socket ketika client terkoneksi
+// Socket
 io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
@@ -30,7 +30,6 @@ io.on("connection", (socket) => {
     });
 });
 
-// Menjalankan server
 server.listen(3000, () => {
     console.log("Server running on http://localhost:3000");
 });

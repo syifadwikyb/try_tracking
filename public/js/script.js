@@ -1,54 +1,45 @@
 const socket = io();
 
-// Mendapatkan lokasi pengguna secara real-time
-if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(
-        (position) => {
-            const {latitude, longitude} = position.coords;
-            // socket.emit("send-location", {latitude, longitude}); // ❌ Komen ini dulu
-        },
-        (error) => {
-            console.error(error);
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0,
-        }
-    );
-}
-
-
-
-// Inisialisasi peta dan atur pusatnya di Kudus
 const map = L.map("map").setView([-6.8140, 110.8520], 14);
 
-// Tambahkan tile layer OpenStreetMap
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
 }).addTo(map);
 
-// Koordinat rute dari Alun-Alun ke Terminal Jati
+// === Icon Halte & Pengguna ===
+const halteIcon = L.icon({
+    iconUrl: "/images/halte.png",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+});
+
+const userIcon = L.icon({
+    iconUrl: "/images/bus.png",
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30],
+});
+
+// === Rute ===
 const routeCoordinates = [
-    [-6.8054, 110.8406], // Alun-Alun Kudus
-    [-6.8080, 110.8450], // Masjid Agung
-    [-6.8103, 110.8489], // Simpang 7
-    [-6.8142, 110.8535], // Pasar Kliwon
-    [-6.8190, 110.8580], // Wisudha Karya
-    [-6.8235, 110.8635], // Terminal Jati
+    [-6.8054, 110.8406],
+    [-6.8080, 110.8450],
+    [-6.8103, 110.8489],
+    [-6.8142, 110.8535],
+    [-6.8190, 110.8580],
+    [-6.8235, 110.8635],
 ];
 
-// Tambahkan polyline (jalur biru)
 const routeLine = L.polyline(routeCoordinates, {
     color: "blue",
     weight: 5,
     opacity: 0.8,
 }).addTo(map);
 
-// Pastikan peta menyesuaikan ke rute
 map.fitBounds(routeLine.getBounds());
 
-// Halte di sepanjang rute
+// === Halte ===
 const halteList = [
     { name: "Alun-Alun Kudus", coords: [-6.8054, 110.8406] },
     { name: "Simpang Tujuh", coords: [-6.8103, 110.8489] },
@@ -56,11 +47,46 @@ const halteList = [
     { name: "Terminal Jati", coords: [-6.8235, 110.8635] },
 ];
 
-// Tambahkan marker halte
 halteList.forEach((halte) => {
-    L.marker(halte.coords)
+    L.marker(halte.coords, { icon: halteIcon })
         .addTo(map)
         .bindPopup(`<b>${halte.name}</b>`);
 });
 
-console.log("Script Leaflet berhasil dijalankan");
+// === Lokasi Pengguna ===
+const markers = {};
+
+if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            socket.emit("send-location", { latitude, longitude });
+        },
+        (error) => {
+            console.error("Geolocation error:", error);
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+        }
+    );
+}
+
+// === Terima lokasi user lain ===
+socket.on("receiveLocation", (data) => {
+    const { id, latitude, longitude } = data;
+
+    if (markers[id]) {
+        markers[id].setLatLng([latitude, longitude]);
+    } else {
+        markers[id] = L.marker([latitude, longitude], { icon: userIcon }).addTo(map);
+    }
+});
+
+socket.on("Client disconnected", (id) => {
+    if (markers[id]) {
+        map.removeLayer(markers[id]);
+        delete markers[id];
+    }
+});
