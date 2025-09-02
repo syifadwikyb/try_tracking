@@ -13,7 +13,7 @@ const halteIcon = L.icon({
 
 // Ikon untuk bus yang bergerak MAJU
 const userIconForward = L.icon({
-    iconUrl: "/images/bus_forward.png", // GANTI dengan nama file gambar bus maju Anda
+    iconUrl: "/images/bus_forward.png",
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
@@ -21,7 +21,7 @@ const userIconForward = L.icon({
 
 // Ikon untuk bus yang bergerak MUNDUR
 const userIconBackward = L.icon({
-    iconUrl: "/images/bus_backward.png", // GANTI dengan nama file gambar bus mundur Anda
+    iconUrl: "/images/bus_backward.png",
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
@@ -109,6 +109,7 @@ halteList.forEach((halte) => {
 // === Lokasi Pengguna ===
 const markers = {};
 let lastPosition = null;
+const MIN_DISTANCE = 5; // Jarak minimum dalam meter untuk mengupdate rotasi
 
 if (navigator.geolocation) {
     navigator.geolocation.watchPosition(
@@ -118,11 +119,17 @@ if (navigator.geolocation) {
             let direction = 1; // 1 = Maju, -1 = Mundur
 
             if (lastPosition) {
-                bearing = calculateBearing(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
+                const distance = getDistance(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
 
-                // Logika sederhana untuk menentukan arah
-                const isMovingForward = isPointOnRoute(latitude, longitude, lastPosition.latitude, lastPosition.longitude);
-                direction = isMovingForward ? 1 : -1;
+                if (distance > MIN_DISTANCE) {
+                    bearing = calculateBearing(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
+                    const isMovingForward = isPointOnRoute(latitude, longitude, lastPosition.latitude, lastPosition.longitude);
+                    direction = isMovingForward ? 1 : -1;
+                } else {
+                    // Jika tidak bergerak, gunakan bearing terakhir
+                    bearing = markers[id]?.options.rotationAngle || 0;
+                    direction = markers[id]?.direction || 1;
+                }
             }
 
             console.log("Current Lat:", latitude, "Lon:", longitude);
@@ -150,13 +157,12 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
 
     const φ1 = toRad(lat1);
     const φ2 = toRad(lat2);
-    const λ1 = toRad(lon1);
-    const λ2 = toRad(lon2);
+    const Δλ = toRad(lon2 - lon1);
 
-    const y = Math.sin(λ2 - λ1) * Math.cos(φ2);
+    const y = Math.sin(Δλ) * Math.cos(φ2);
     const x =
         Math.cos(φ1) * Math.sin(φ2) -
-        Math.sin(φ1) * Math.cos(φ2) * Math.cos(λ2 - λ1);
+        Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
 
     let bearing = toDeg(Math.atan2(y, x));
 
@@ -164,12 +170,10 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
 }
 
 // === Fungsi sederhana untuk memeriksa apakah bus bergerak maju atau mundur ===
-// Periksa apakah bus bergerak menuju titik rute berikutnya
 function isPointOnRoute(lat, lon, prevLat, prevLon) {
     const totalPoints = routeCoordinates.length;
     let prevIndex = -1;
 
-    // Cari indeks titik terdekat sebelumnya
     let minDistance = Infinity;
     for (let i = 0; i < totalPoints; i++) {
         const dist = getDistance(prevLat, prevLon, routeCoordinates[i][0], routeCoordinates[i][1]);
@@ -179,9 +183,8 @@ function isPointOnRoute(lat, lon, prevLat, prevLon) {
         }
     }
 
-    if (prevIndex === -1) return true; // Belum ada data, anggap maju
+    if (prevIndex === -1) return true;
 
-    // Periksa apakah titik saat ini lebih dekat ke titik rute berikutnya
     const nextIndex = (prevIndex + 1) % totalPoints;
     const currentDistanceToNext = getDistance(lat, lon, routeCoordinates[nextIndex][0], routeCoordinates[nextIndex][1]);
     const prevDistanceToNext = getDistance(prevLat, prevLon, routeCoordinates[nextIndex][0], routeCoordinates[nextIndex][1]);
@@ -205,7 +208,6 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-
 // === Terima lokasi user lain ===
 socket.on("receiveLocation", (data) => {
     const {id, latitude, longitude, bearing, direction} = data;
@@ -214,11 +216,7 @@ socket.on("receiveLocation", (data) => {
 
     if (markers[id]) {
         markers[id].setLatLng([latitude, longitude]);
-        if (direction === -1) {
-            markers[id].setIcon(userIconBackward);
-        } else {
-            markers[id].setIcon(userIconForward);
-        }
+        markers[id].setIcon(direction === -1 ? userIconBackward : userIconForward);
         if (bearing !== undefined) {
             markers[id].setRotationAngle(bearing);
         }
