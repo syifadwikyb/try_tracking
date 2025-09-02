@@ -13,7 +13,7 @@ const halteIcon = L.icon({
 
 // Ikon untuk bus yang bergerak MAJU
 const userIconForward = L.icon({
-    iconUrl: "/images/bus_forward.png",
+    iconUrl: "/images/bus.png",
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
@@ -21,7 +21,7 @@ const userIconForward = L.icon({
 
 // Ikon untuk bus yang bergerak MUNDUR
 const userIconBackward = L.icon({
-    iconUrl: "/images/bus_backward.png",
+    iconUrl: "/images/bus.png",
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
