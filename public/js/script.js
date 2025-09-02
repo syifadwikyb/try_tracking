@@ -11,8 +11,10 @@ const halteIcon = L.icon({
     iconSize: [32, 32],
 });
 
+// Pastikan gambar bus.png Anda menghadap ke atas (arah utara) secara default
+// Jika gambar menghadap ke arah lain, Anda harus menyesuaikan 'rotationAngle' dengan offset
 const userIcon = L.icon({
-    iconUrl: "/images/bus.svg",
+    iconUrl: "/images/bus.png", // Menggunakan PNG
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
@@ -20,19 +22,19 @@ const userIcon = L.icon({
 
 // === Rute ===
 const routeCoordinates = [
-    [-7.054210740330652, 110.44482615946559], // Halte Rusunawa
+    [-7.054210740330652, 110.44482615946559],
     [-7.054958906707725, 110.44307224004602],
     [-7.056259460902268, 110.44021524314452],
-    [-7.0562188876791225, 110.44004767270535], // Masjid Hijau Sigawe
-    [-7.056043315617696, 110.43919707375414], // Bunderan Undip
-    [-7.055277538463565, 110.43933054750067], // Halte
-    [-7.053639710655384, 110.43961526490833], // Pertigaan Student Center
-    [-7.0534757153490055, 110.43890806492082], // Halte Student Center
+    [-7.0562188876791225, 110.44004767270535],
+    [-7.056043315617696, 110.43919707375414],
+    [-7.055277538463565, 110.43933054750067],
+    [-7.053639710655384, 110.43961526490833],
+    [-7.0534757153490055, 110.43890806492082],
     [-7.053352023688737, 110.43872067554854],
     [-7.05322153690728, 110.43860534065148],
-    [-7.050933103278125, 110.43759316038283], // belokan
+    [-7.050933103278125, 110.43759316038283],
     [-7.0509291103911025, 110.43736584316657],
-    [-7.0504905489418155, 110.43582397369855], // Sekolah Vokasi (HALTE)
+    [-7.0504905489418155, 110.43582397369855],
     [-7.05040082924466, 110.4358662969806],
     [-7.050819629308075, 110.43740227086586],
     [-7.050813872734195, 110.4375762840299],
@@ -43,31 +45,30 @@ const routeCoordinates = [
     [-7.049410872260698, 110.43924291564747],
     [-7.0495486356572625, 110.43979329346357],
     [-7.049426397583421, 110.44003314920771],
-    [-7.048737860350842, 110.4401883825455], // Rumah Taman Kita (HALTE)
-    [-7.047657158657433, 110.44060685825151], // Pertigaan
-    [-7.047843733260816, 110.44127456480881], // FEB (HALTE)
+    [-7.048737860350842, 110.4401883825455],
+    [-7.047657158657433, 110.44060685825151],
+    [-7.047843733260816, 110.44127456480881],
     [-7.048264549456368, 110.44264034042997],
     [-7.048483291798438, 110.44269058048451],
-    [-7.04869238365161, 110.44261603072252], // FKM (HALTE)
+    [-7.04869238365161, 110.44261603072252],
     [-7.049234413628306, 110.44241831179215],
     [-7.04953035851685, 110.44235186526458],
-    [-7.05007461627563, 110.44219560312854], // FPIK (HALTE)
-    [-7.052318788833195, 110.44152469902183], // FPP (HALTE)
+    [-7.05007461627563, 110.44219560312854],
+    [-7.052318788833195, 110.44152469902183],
     [-7.053502079123587, 110.44112282388647],
     [-7.0537287139008304, 110.440910607664],
     [-7.053822572714713, 110.44058536325424],
-    [-7.053671645233053, 110.43967923069772], // Pertigaan
-    [-7.056026732746777, 110.43933800682366], // Bunderan Undip
+    [-7.053671645233053, 110.43967923069772],
+    [-7.056026732746777, 110.43933800682366],
     [-7.056149293287898, 110.44018241787253],
     [-7.056063012218507, 110.44058587158754],
     [-7.0552446893968215, 110.44233960472613],
-    [-7.054912402398972, 110.44294506776454], // Pos Jembatan Sikatak
+    [-7.054912402398972, 110.44294506776454],
     [-7.054832861827349, 110.44313932324741],
     [-7.054045897116651, 110.44485717581234],
     [-7.054137515803368, 110.44489179486477],
     [-7.054210740330652, 110.44482615946559],
 ];
-
 
 const routeLine = L.polyline(routeCoordinates, {
     color: "blue",
@@ -107,15 +108,15 @@ if (navigator.geolocation) {
             const {latitude, longitude} = position.coords;
             let bearing = 0;
 
-            // Hitung bearing hanya jika ada posisi sebelumnya
             if (lastPosition) {
                 bearing = calculateBearing(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
             }
 
-            // Kirim data lokasi dan bearing ke server
-            socket.emit("send-location", {latitude, longitude, bearing});
+            // Logging untuk debugging
+            console.log("Current Lat:", latitude, "Lon:", longitude);
+            console.log("Calculated Bearing:", bearing);
 
-            // Perbarui posisi terakhir
+            socket.emit("send-location", {latitude, longitude, bearing});
             lastPosition = {latitude, longitude};
         },
         (error) => {
@@ -152,6 +153,9 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
 // === Terima lokasi user lain ===
 socket.on("receiveLocation", (data) => {
     const {id, latitude, longitude, bearing} = data;
+
+    // Logging untuk debugging
+    console.log("Received from server - ID:", id, "Lat:", latitude, "Lon:", longitude, "Bearing:", bearing);
 
     if (markers[id]) {
         markers[id].setLatLng([latitude, longitude]);
