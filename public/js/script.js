@@ -11,8 +11,17 @@ const halteIcon = L.icon({
     iconSize: [32, 32],
 });
 
-const userIcon = L.icon({
-    iconUrl: "/images/bus.png",
+// Ikon untuk bus yang bergerak MAJU
+const userIconForward = L.icon({
+    iconUrl: "/images/bus_forward.png", // GANTI dengan nama file gambar bus maju Anda
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30],
+});
+
+// Ikon untuk bus yang bergerak MUNDUR
+const userIconBackward = L.icon({
+    iconUrl: "/images/bus_backward.png", // GANTI dengan nama file gambar bus mundur Anda
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
@@ -84,7 +93,7 @@ const halteList = [
     {name: "Halte Pos Satpam", coords: [-7.055277538463565, 110.43933054750067]},
     {name: "Halte Student Center", coords: [-7.0534757153490055, 110.43890806492082]},
     {name: "Halte Vokasi", coords: [-7.0504905489418155, 110.43582397369855]},
-    {name: "Halte SAMWA", coords: [-7.048737860350842, 110.4401883825455]},
+    {name: "Halte SAMWA", coords: [7.048737860350842, 110.4401883825455]},
     {name: "Halte FEB", coords: [-7.047843733260816, 110.44127456480881]},
     {name: "Halte FKM", coords: [-7.04869238365161, 110.44261603072252]},
     {name: "Halte FPIK", coords: [-7.05007461627563, 110.44219560312854]},
@@ -106,16 +115,21 @@ if (navigator.geolocation) {
         (position) => {
             const {latitude, longitude} = position.coords;
             let bearing = 0;
+            let direction = 1; // 1 = Maju, -1 = Mundur
 
-            // Hitung bearing hanya jika ada posisi sebelumnya
             if (lastPosition) {
                 bearing = calculateBearing(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
+
+                // Logika sederhana untuk menentukan arah
+                const isMovingForward = isPointOnRoute(latitude, longitude, lastPosition.latitude, lastPosition.longitude);
+                direction = isMovingForward ? 1 : -1;
             }
 
-            // Kirim data lokasi dan bearing ke server
-            socket.emit("send-location", {latitude, longitude, bearing});
+            console.log("Current Lat:", latitude, "Lon:", longitude);
+            console.log("Calculated Bearing:", bearing);
+            console.log("Direction:", direction === 1 ? 'Forward' : 'Backward');
 
-            // Perbarui posisi terakhir
+            socket.emit("send-location", {latitude, longitude, bearing, direction});
             lastPosition = {latitude, longitude};
         },
         (error) => {
@@ -149,19 +163,69 @@ function calculateBearing(lat1, lon1, lat2, lon2) {
     return (bearing + 360) % 360;
 }
 
+// === Fungsi sederhana untuk memeriksa apakah bus bergerak maju atau mundur ===
+// Periksa apakah bus bergerak menuju titik rute berikutnya
+function isPointOnRoute(lat, lon, prevLat, prevLon) {
+    const totalPoints = routeCoordinates.length;
+    let prevIndex = -1;
+
+    // Cari indeks titik terdekat sebelumnya
+    let minDistance = Infinity;
+    for (let i = 0; i < totalPoints; i++) {
+        const dist = getDistance(prevLat, prevLon, routeCoordinates[i][0], routeCoordinates[i][1]);
+        if (dist < minDistance) {
+            minDistance = dist;
+            prevIndex = i;
+        }
+    }
+
+    if (prevIndex === -1) return true; // Belum ada data, anggap maju
+
+    // Periksa apakah titik saat ini lebih dekat ke titik rute berikutnya
+    const nextIndex = (prevIndex + 1) % totalPoints;
+    const currentDistanceToNext = getDistance(lat, lon, routeCoordinates[nextIndex][0], routeCoordinates[nextIndex][1]);
+    const prevDistanceToNext = getDistance(prevLat, prevLon, routeCoordinates[nextIndex][0], routeCoordinates[nextIndex][1]);
+
+    return currentDistanceToNext < prevDistanceToNext;
+}
+
+// Fungsi bantu untuk menghitung jarak Haversine
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
+}
+
+
 // === Terima lokasi user lain ===
 socket.on("receiveLocation", (data) => {
-    const {id, latitude, longitude, bearing} = data;
+    const {id, latitude, longitude, bearing, direction} = data;
+
+    console.log("Received from server - ID:", id, "Lat:", latitude, "Lon:", longitude, "Bearing:", bearing, "Direction:", direction);
 
     if (markers[id]) {
         markers[id].setLatLng([latitude, longitude]);
-
+        if (direction === -1) {
+            markers[id].setIcon(userIconBackward);
+        } else {
+            markers[id].setIcon(userIconForward);
+        }
         if (bearing !== undefined) {
             markers[id].setRotationAngle(bearing);
         }
     } else {
+        const iconToUse = direction === -1 ? userIconBackward : userIconForward;
         markers[id] = L.marker([latitude, longitude], {
-            icon: userIcon,
+            icon: iconToUse,
             rotationAngle: bearing,
         }).addTo(map);
     }
