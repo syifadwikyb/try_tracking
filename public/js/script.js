@@ -6,7 +6,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
 }).addTo(map);
 
-// === Icon Halte & Pengguna ===
 const halteIcon = L.icon({
     iconUrl: "/images/halte.svg",
     iconSize: [32, 32],
