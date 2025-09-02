@@ -21,7 +21,7 @@ const userIconForward = L.icon({
 
 // Ikon untuk bus yang bergerak MUNDUR
 const userIconBackward = L.icon({
-    iconUrl: "/images/bus.png",
+    iconUrl: "/images/bus1.png",
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
