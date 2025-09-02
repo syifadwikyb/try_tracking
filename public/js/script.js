@@ -84,7 +84,7 @@ const halteList = [
     {name: "Halte Pos Satpam", coords: [-7.055277538463565, 110.43933054750067]},
     {name: "Halte Student Center", coords: [-7.0534757153490055, 110.43890806492082]},
     {name: "Halte Vokasi", coords: [-7.0504905489418155, 110.43582397369855]},
-    {name: "Halte SAMWA", coords: [7.048737860350842, 110.4401883825455]},
+    {name: "Halte SAMWA", coords: [-7.048737860350842, 110.4401883825455]},
     {name: "Halte FEB", coords: [-7.047843733260816, 110.44127456480881]},
     {name: "Halte FKM", coords: [-7.04869238365161, 110.44261603072252]},
     {name: "Halte FPIK", coords: [-7.05007461627563, 110.44219560312854]},
