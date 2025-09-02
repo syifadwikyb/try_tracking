@@ -99,12 +99,24 @@ halteList.forEach((halte) => {
 
 // === Lokasi Pengguna ===
 const markers = {};
+let lastPosition = null;
 
 if (navigator.geolocation) {
     navigator.geolocation.watchPosition(
         (position) => {
             const {latitude, longitude} = position.coords;
-            socket.emit("send-location", {latitude, longitude});
+            let bearing = 0;
+
+            // Hitung bearing hanya jika ada posisi sebelumnya
+            if (lastPosition) {
+                bearing = calculateBearing(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
+            }
+
+            // Kirim data lokasi dan bearing ke server
+            socket.emit("send-location", {latitude, longitude, bearing});
+
+            // Perbarui posisi terakhir
+            lastPosition = {latitude, longitude};
         },
         (error) => {
             console.error("Geolocation error:", error);
@@ -117,14 +129,41 @@ if (navigator.geolocation) {
     );
 }
 
+// === Fungsi untuk menghitung arah (bearing) antara dua titik ===
+function calculateBearing(lat1, lon1, lat2, lon2) {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const toDeg = (rad) => (rad * 180) / Math.PI;
+
+    const φ1 = toRad(lat1);
+    const φ2 = toRad(lat2);
+    const λ1 = toRad(lon1);
+    const λ2 = toRad(lon2);
+
+    const y = Math.sin(λ2 - λ1) * Math.cos(φ2);
+    const x =
+        Math.cos(φ1) * Math.sin(φ2) -
+        Math.sin(φ1) * Math.cos(φ2) * Math.cos(λ2 - λ1);
+
+    let bearing = toDeg(Math.atan2(y, x));
+
+    return (bearing + 360) % 360;
+}
+
 // === Terima lokasi user lain ===
 socket.on("receiveLocation", (data) => {
-    const {id, latitude, longitude} = data;
+    const {id, latitude, longitude, bearing} = data;
 
     if (markers[id]) {
         markers[id].setLatLng([latitude, longitude]);
+
+        if (bearing !== undefined) {
+            markers[id].setRotationAngle(bearing);
+        }
     } else {
-        markers[id] = L.marker([latitude, longitude], {icon: userIcon}).addTo(map);
+        markers[id] = L.marker([latitude, longitude], {
+            icon: userIcon,
+            rotationAngle: bearing,
+        }).addTo(map);
     }
 });
 
