@@ -12,7 +12,7 @@ const halteIcon = L.icon({
 });
 
 const busIcon = L.icon({ // Ganti userIcon menjadi busIcon agar lebih deskriptif
-    iconUrl: "/images/bus2.png",
+    iconUrl: "/images/bus.png",
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
